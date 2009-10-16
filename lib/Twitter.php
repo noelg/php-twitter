@@ -6,33 +6,40 @@
  * 
  * @author Travis Dent <tcdent@gmail.com>
  * @copyright (c) 2009 Travis Dent.
- * @version 0.2
+ * @version 0.2.1
  * 
- * Usage:
+ * Public (unauthenticated) methods:
  * 
- * $twitter = new Twitter('username', 'password');
+ * $twitter = new Twitter;
  * 
  * // Get the public timeline.
- * $tweets = $twitter->statuses->public_timeline();
+ * $entries = $twitter->statuses->public_timeline();
+ * 
+ * // Search.
+ * $twitter->search(array('q' => 'foo'));
+ * 
+ * 
+ * Protected (authenticated) methods:
+ * 
+ * $twitter = new Twitter('username', 'password');
  * 
  * // Get page two of the user's followers.
  * $entries = $twitter->statuses->followers(array('page' => 2));
  * 
  * // Send a direct message.
  * $twitter->direct_messages->new(array('user' => 12345, 'text' => 'foo'));
- * 
- * // Search.
- * $twitter->search(array('q' => 'foo'));
  */
 
 class Twitter {
+    
+    const VERSION = 1;
     
     private $user;
     private $pass;
     private $format;
     private $uri;
     
-    public function __construct($user, $pass, $format='json', $uri=NULL){
+    public function __construct($user=FALSE, $pass=FALSE, $format='json', $uri=NULL){
         if(!in_array($format, array('json', 'xml', 'rss', 'atom')))
             throw new TwitterException("Unsupported format: $format");
         
@@ -50,22 +57,26 @@ class Twitter {
         $args = (count($args) && is_array($args[0]))? $args[0] : array();
         
         $curlopt = array(
-            CURLOPT_USERPWD => sprintf("%s:%s", $this->user, $this->pass), 
-            CURLOPT_HTTPAUTH => CURLAUTH_BASIC, 
             CURLOPT_RETURNTRANSFER => TRUE, 
             // Twitter returns a HTTP code 417 if we send an expectation.
             CURLOPT_HTTPHEADER => array('Expect:')
         );
+        
+        if($this->user && $this->pass){
+            array_merge($curlopt, array(
+                CURLOPT_USERPWD => sprintf("%s:%s", $this->user, $this->pass), 
+                CURLOPT_HTTPAUTH => CURLAUTH_BASIC
+            ));
+        }
         
         $uri = ($this->uri)? sprintf("%s/%s", $this->uri, $method) : $method;
         
         if(array_key_exists('id', $args))
             $uri .= '/'.$args['id']; unset($args['id']);
         
-        $url = sprintf("%s.twitter.com/%s.%s", 
-            ($method == 'search')? 'search' : 'www', 
-            $uri, 
-            $this->format);
+        $subdomain = ($method == 'search')? 'search' : 'api';
+        $url = sprintf("%s.twitter.com/%d/%s.%s", 
+             $subdomain, self::VERSION, $uri, $this->format);
         
         if(in_array($method, array('new', 'create', 'update', 'destroy'))){
             $curlopt[CURLOPT_POST] = TRUE;
