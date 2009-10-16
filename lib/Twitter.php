@@ -32,7 +32,7 @@
 
 class Twitter {
     
-    const VERSION = 1;
+    public static $VERSION = 1;
     
     private $user;
     private $pass;
@@ -76,7 +76,7 @@ class Twitter {
         
         $subdomain = ($method == 'search')? 'search' : 'api';
         $url = sprintf("%s.twitter.com/%d/%s.%s", 
-             $subdomain, self::VERSION, $uri, $this->format);
+             $subdomain, self::$VERSION, $uri, $this->format);
         
         if(in_array($method, array('new', 'create', 'update', 'destroy'))){
             $curlopt[CURLOPT_POST] = TRUE;
