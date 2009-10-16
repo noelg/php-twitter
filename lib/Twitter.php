@@ -6,7 +6,7 @@
  * 
  * @author Travis Dent <tcdent@gmail.com>
  * @copyright (c) 2009 Travis Dent.
- * @version 0.2.1
+ * @version 0.2.2
  * 
  * Public (unauthenticated) methods:
  * 
@@ -93,8 +93,7 @@ class Twitter {
         curl_close($curl);
         
         if($meta['http_code'] != 200)
-            throw new TwitterException(
-              "Response code: {$meta['http_code']} from \n\t${url}");
+            throw new TwitterException($meta, $data);
         
         if($this->format == 'json')
             return json_decode($data);
@@ -103,6 +102,19 @@ class Twitter {
     }
 }
 
-class TwitterException extends Exception {}
+class TwitterException extends Exception {
+    
+    public function __construct($response, $data){
+        $message = sprintf("Response code %d from %s", 
+            $response['http_code'], $response['url']);
+        
+        if(strpos($response['content_type'], "json")){
+            $data = json_decode($data);
+            $message .= " - ".$data->error;
+        }
+        
+        parent::__construct($message, $response['http_code']);
+    }
+}
 
 ?>
