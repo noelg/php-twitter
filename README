@@ -1,12 +1,21 @@
 A minimalist PHP Twitter API.
 Inspired by Mike Verdone's <http://mike.verdone.ca> Python Twitter Tools
 
-Usage:
 
-$twitter = new Twitter('username', 'password');
+Public (unauthenticated) methods:
+
+$twitter = new Twitter;
 
 // Get the public timeline.
-$tweets = $twitter->statuses->public_timeline();
+$entries = $twitter->statuses->public_timeline();
+
+// Search.
+$twitter->search(array('q' => 'foo'));
+
+
+Protected (authenticated) methods:
+
+$twitter = new Twitter('username', 'password');
 
 // Get page two of the user's followers.
 $entries = $twitter->statuses->followers(array('page' => 2));
