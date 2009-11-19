@@ -93,7 +93,7 @@ class Twitter {
         curl_close($curl);
         
         if($meta['http_code'] != 200)
-            throw new TwitterException($meta, $data);
+            throw new TwitterResponseException($meta, $data);
         
         if($this->format == 'json')
             return json_decode($data);
@@ -102,7 +102,9 @@ class Twitter {
     }
 }
 
-class TwitterException extends Exception {
+class TwitterException extends Exception {}
+
+class TwitterResponseException extends TwitterException {
     
     public function __construct($response, $data){
         $message = sprintf("Response code %d from %s", 
