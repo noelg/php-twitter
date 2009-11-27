@@ -39,7 +39,9 @@ class Twitter {
     private $format;
     private $uri;
     
-    public function __construct($user=FALSE, $pass=FALSE, $format='json', $uri=NULL){
+    private $userAgent;
+    
+    public function __construct($user=FALSE, $pass=FALSE, $format='json', $uri=NULL, $userAgent=NULL){
         if(!in_array($format, array('json', 'xml', 'rss', 'atom')))
             throw new TwitterException("Unsupported format: $format");
         
@@ -47,6 +49,7 @@ class Twitter {
         $this->pass = $pass;
         $this->format = $format;
         $this->uri = $uri;
+        $this->userAgent = $userAgent;
     }
     
     public function __get($key){
@@ -55,6 +58,16 @@ class Twitter {
     
     public function __call($method, $args){
         $args = (count($args) && is_array($args[0]))? $args[0] : array();
+        
+        $uri = ($this->uri)? sprintf("%s/%s", $this->uri, $method) : $method;
+        
+        if(array_key_exists('id', $args))
+            $uri .= '/'.$args['id']; unset($args['id']);
+        
+        $this->exec(array($uri), $args);
+    }
+    
+    public function exec($arrPath, $args = array()) {
         
         $curlopt = array(
             CURLOPT_RETURNTRANSFER => TRUE, 
@@ -69,14 +82,16 @@ class Twitter {
             ));
         }
         
-        $uri = ($this->uri)? sprintf("%s/%s", $this->uri, $method) : $method;
-        
-        if(array_key_exists('id', $args))
-            $uri .= '/'.$args['id']; unset($args['id']);
+        if ($this->userAgent) {
+            array_merge($curlopt, array(
+                CURLOPT_USERAGENT => $this->userAgent));
+        }
         
         $subdomain = ($method == 'search')? 'search' : 'api';
+        
+        $strUri = implode($arrPath, '/');
         $url = sprintf("%s.twitter.com/%d/%s.%s", 
-             $subdomain, self::$VERSION, $uri, $this->format);
+             $subdomain, self::$VERSION, $strUri, $this->format);
         
         if(in_array($method, array('new', 'create', 'update', 'destroy'))){
             $curlopt[CURLOPT_POST] = TRUE;
