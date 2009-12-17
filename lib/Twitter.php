@@ -1,5 +1,22 @@
 <?php
 
+function http_parse_headers( $header )
+    {
+        $retVal = array();
+        $fields = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $header));
+        foreach( $fields as $field ) {
+            if( preg_match('/([^:]+): (.+)/m', $field, $match) ) {
+                $match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper("\0")', strtolower(trim($match[1])));
+                if( isset($retVal[$match[1]]) ) {
+                    $retVal[$match[1]] = array($retVal[$match[1]], $match[2]);
+                } else {
+                    $retVal[$match[1]] = trim($match[2]);
+                }
+            }
+        }
+        return $retVal;
+    }
+
 /**
  * A minimalist PHP Twitter API.
  * Inspired by Mike Verdone's <http://mike.verdone.ca> Python Twitter Tools
@@ -41,6 +58,8 @@ class Twitter {
     
     private $userAgent;
     
+    private $arrReturnedHeaders;
+    
     public function __construct($user=FALSE, $pass=FALSE, $format='json', $uri=NULL, $userAgent=NULL){
         if(!in_array($format, array('json', 'xml', 'rss', 'atom')))
             throw new TwitterException("Unsupported format: $format");
@@ -64,7 +83,7 @@ class Twitter {
         if(array_key_exists('id', $args))
             $uri .= '/'.$args['id']; unset($args['id']);
         
-        $this->exec(array($uri), $args);
+        return $this->exec(array($uri), $args);
     }
     
     public function exec($arrPath, $args = array()) {
@@ -72,7 +91,8 @@ class Twitter {
         $curlopt = array(
             CURLOPT_RETURNTRANSFER => TRUE, 
             // Twitter returns a HTTP code 417 if we send an expectation.
-            CURLOPT_HTTPHEADER => array('Expect:')
+            CURLOPT_HTTPHEADER => array('Expect:'),
+            CURLOPT_HEADER => 0
         );
         
         if($this->user && $this->pass){
@@ -87,11 +107,19 @@ class Twitter {
                 CURLOPT_USERAGENT => $this->userAgent));
         }
         
+        $method = $arrPath[0];
+        
         $subdomain = ($method == 'search')? 'search' : 'api';
         
         $strUri = implode($arrPath, '/');
-        $url = sprintf("%s.twitter.com/%d/%s.%s", 
-             $subdomain, self::$VERSION, $strUri, $this->format);
+        
+        if ($subdomain == 'search') {
+            $url = sprintf("%s.twitter.com/%s.%s", 
+                $subdomain, $strUri, $this->format);
+        } else {
+            $url = sprintf("%s.twitter.com/%d/%s.%s", 
+                $subdomain, self::$VERSION, $strUri, $this->format);
+        }
         
         if(in_array($method, array('new', 'create', 'update', 'destroy'))){
             $curlopt[CURLOPT_POST] = TRUE;
@@ -110,6 +138,8 @@ class Twitter {
         if($meta['http_code'] != 200)
             throw new TwitterResponseException($meta, $data);
         
+        var_dump($data);
+        
         if($this->format == 'json')
             return json_decode($data);
         
@@ -121,7 +151,12 @@ class TwitterException extends Exception {}
 
 class TwitterResponseException extends TwitterException {
     
+    var $http_code = 0;
+    
     public function __construct($response, $data){
+        
+        $this->http_code = $response['http_code'];
+        
         $message = sprintf("Response code %d from %s", 
             $response['http_code'], $response['url']);
         
