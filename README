@@ -22,3 +22,22 @@ $entries = $twitter->statuses->followers(array('page' => 2));
 
 // Send a direct message.
 $twitter->direct_messages->new(array('user' => 12345, 'text' => 'foo'));
+
+// View your lists. (Unfortunately, Twitter has adopted an inconsistent way 
+// of exposing the list resources that doesn't quite fit our model.)
+$twitter->{'username'}->lists();
+
+
+Retrieving results in another format and setting the user agent string:
+
+$twitter = new Twitter('username', 'password', array(
+    'format' => "xml", 
+    'user_agent' => "my-application/0.1"
+));
+
+-or-
+
+$twitter = new Twitter;
+$twitter->set_option('format', "XML");
+$twitter->set_option('user_agent', "my-application/0.1");
+
