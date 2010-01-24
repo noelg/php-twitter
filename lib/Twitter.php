@@ -6,7 +6,7 @@
  * 
  * @author Travis Dent <tcdent@gmail.com>
  * @copyright (c) 2009 Travis Dent.
- * @version 0.2.3
+ * @version 0.2.4
  * 
  * Public (unauthenticated) methods:
  * 
@@ -34,25 +34,27 @@ class Twitter {
     
     public static $VERSION = 1;
     
-    public $user_agent = "php-twitter/0.2.3";
+    public $user_agent = "php-twitter/0.2.4";
     
     private $user;
     private $pass;
     private $format;
     private $uri;
     
-    public function __construct($user=FALSE, $pass=FALSE, $format='json', $uri=NULL){
+    public function __construct($user=FALSE, $pass=FALSE, $format='json', $user_agent=NULL, $uri=NULL){
         if(!in_array($format, array('json', 'xml', 'rss', 'atom')))
             throw new TwitterException("Unsupported format: $format");
         
         $this->user = $user;
         $this->pass = $pass;
-        $this->format = $format;
         $this->uri = $uri;
+        $this->format = $format;
+        if($user_agent !== NULL) $this->user_agent = $user_agent;
     }
     
     public function __get($key){
-        return new Twitter($this->user, $this->pass, $this->format, $key);
+        return new Twitter(
+            $this->user, $this->pass, $this->format, $this->user_agent, $key);
     }
     
     public function __call($method, $args){
